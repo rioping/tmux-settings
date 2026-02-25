@@ -26,7 +26,8 @@ fi
 
 case "$STATE" in
   thinking)   echo "🧠 思考中 (${TIME})" ;;
-  idle)       echo "📝 入力待ち (${TIME})" ;;
+  completed)  echo "✅ 完了 (${TIME})" ;;
+  waiting)    echo "💬 入力待ち (${TIME})" ;;
   permission) echo "🛑 許可待ち (${TIME})" ;;
   starting)   echo "🚀 起動中" ;;
   *)          echo "❓ 不明" ;;

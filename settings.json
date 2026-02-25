@@ -70,7 +70,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/state-update.sh idle"
+            "command": "bash ~/.claude/hooks/state-stop.sh"
           },
           {
             "type": "command",

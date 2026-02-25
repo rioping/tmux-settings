@@ -25,7 +25,8 @@ for pane_info in $(tmux list-panes -a -F '#{pane_id}:#{pane_current_path}' 2>/de
 
     case "$state" in
       thinking)   emoji="🧠"; color="#a6e3a1" ;;
-      idle)       emoji="📝"; color="#fab387" ;;
+      completed)  emoji="✅"; color="#a6adc8" ;;
+      waiting)    emoji="💬"; color="#fab387" ;;
       permission) emoji="🛑"; color="#f38ba8" ;;
       starting)   emoji="🚀"; color="#89b4fa" ;;
     esac

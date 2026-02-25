@@ -9,7 +9,8 @@ tmux-settings/
 ├── .tmux.conf                      # tmux本体設定 → ~/.tmux.conf
 ├── settings.json                   # Claude Code設定 → ~/.claude/settings.json
 ├── hooks/
-│   └── state-update.sh             # 状態更新フック → ~/.claude/hooks/state-update.sh
+│   ├── state-update.sh             # 状態更新フック → ~/.claude/hooks/state-update.sh
+│   └── state-stop.sh               # Stop時の状態判定 → ~/.claude/hooks/state-stop.sh
 ├── scripts/
 │   ├── tmux-pane-status.sh         # ペインボーダー状態表示
 │   ├── tmux-window-status.sh       # ステータスバー右側表示 + ボーダー色フォールバック

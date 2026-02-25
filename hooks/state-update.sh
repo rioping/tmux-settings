@@ -1,6 +1,6 @@
 #!/bin/bash
 # Claude Code State Tracker
-# 引数: $1 = 状態名 (thinking, idle, permission, starting)
+# 引数: $1 = 状態名 (thinking, completed, waiting, permission, starting)
 STATE="$1"
 STATE_DIR="/tmp/claude-sessions"
 mkdir -p "$STATE_DIR"
@@ -18,7 +18,8 @@ EOF
 if [ -n "$TMUX_PANE" ]; then
   case "$STATE" in
     thinking)   color="#a6e3a1" ;;  # グリーン
-    idle)       color="#fab387" ;;  # オレンジ
+    completed)  color="#a6adc8" ;;  # グレー（タスク完了）
+    waiting)    color="#fab387" ;;  # オレンジ（途中入力待ち）
     permission) color="#f38ba8" ;;  # レッド
     starting)   color="#89b4fa" ;;  # ブルー
     *)          color="#585b70" ;;  # グレー
