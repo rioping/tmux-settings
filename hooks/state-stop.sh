@@ -4,10 +4,10 @@
 INPUT=$(cat)
 LAST_MSG=$(echo "$INPUT" | jq -r '.last_assistant_message // empty')
 
-# 質問判定: 最後のメッセージが「？」「?」で終わるかチェック
-# （末尾の空白・改行を除去してから判定）
-TRIMMED=$(echo "$LAST_MSG" | sed 's/[[:space:]]*$//')
-if echo "$TRIMMED" | grep -q '[？?]$'; then
+# 質問判定: 最後の行が「？」「?」で終わるかチェック
+# （空行を除去してから最終行だけを判定。grep は全行検索するため tail -1 で絞る）
+LAST_LINE=$(echo "$LAST_MSG" | sed '/^[[:space:]]*$/d' | tail -1 | sed 's/[[:space:]]*$//')
+if echo "$LAST_LINE" | grep -q '[？?]$'; then
   STATE="waiting"
 else
   STATE="completed"
