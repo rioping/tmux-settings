@@ -12,7 +12,7 @@ Claude Code (各 tmux ペイン内)
   │
   └─ statusLine → statusline-command.sh → ctx:45% | 5h:23%(2h30m) | 7d:12%
 
-tmux (3秒ごとにステータスバー更新)
+tmux (1秒ごとにステータスバー更新)
   ├─ ステータスバー右: 各ペインの ディレクトリ名:絵文字
   └─ ペインボーダー上部: 絵文字 + 状態テキスト + 経過時間 + パス
 ```
@@ -98,4 +98,4 @@ prefix + r  (Ctrl-b → r)
 ## ボーダー色の更新タイミング
 
 1. **即時**: Hook 発火 → `state-update.sh` が `tmux set-option -p` で直接変更
-2. **フォールバック (3秒ごと)**: `tmux-window-status.sh` がステータスバー更新のついでに再適用
+2. **フォールバック (1秒ごと)**: `tmux-window-status.sh` がステータスバー更新のついでに再適用

@@ -28,7 +28,7 @@ tmux-settings/
 ## 状態管理の仕組み
 - 状態ファイル: `/tmp/claude-sessions/{pane_id}.state`（JSON形式）
 - Hook発火 → `state-update.sh` が状態書き込み + ペインボーダー色を即時変更
-- `tmux-window-status.sh` が3秒ごとにステータスバー更新 + ボーダー色フォールバック
+- `tmux-window-status.sh` が1秒ごとにステータスバー更新 + ボーダー色フォールバック
 
 ## 重要なコマンド
 ```bash
