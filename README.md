@@ -22,7 +22,8 @@ tmux (3秒ごとにステータスバー更新)
 | 状態 | 絵文字 | ボーダー色 | カラーコード |
 |------|--------|-----------|------------|
 | 思考中 | 🧠 | グリーン | `#a6e3a1` |
-| 入力待ち | 📝 | オレンジ | `#fab387` |
+| タスク完了 | ✅ | グレー | `#a6adc8` |
+| 途中入力待ち | 💬 | オレンジ | `#fab387` |
 | 許可待ち | 🛑 | レッド | `#f38ba8` |
 | 起動中 | 🚀 | ブルー | `#89b4fa` |
 | 未起動 | -- | グレー | `#585b70` |
@@ -35,7 +36,8 @@ tmux-settings/
 ├── .tmux.conf                      # → ~/.tmux.conf
 ├── settings.json                   # → ~/.claude/settings.json
 ├── hooks/
-│   └── state-update.sh             # → ~/.claude/hooks/state-update.sh
+│   ├── state-update.sh             # → ~/.claude/hooks/state-update.sh
+│   └── state-stop.sh               # → ~/.claude/hooks/state-stop.sh
 ├── scripts/
 │   ├── tmux-pane-status.sh         # → ~/.claude/scripts/tmux-pane-status.sh
 │   ├── tmux-window-status.sh       # → ~/.claude/scripts/tmux-window-status.sh
@@ -52,10 +54,10 @@ brew install tmux
 
 # 2. ファイルをコピー
 cp .tmux.conf ~/.tmux.conf
-cp hooks/state-update.sh ~/.claude/hooks/
+cp hooks/*.sh ~/.claude/hooks/
 cp scripts/*.sh ~/.claude/scripts/
 cp bin/claude-sessions.sh ~/bin/
-chmod +x ~/.claude/hooks/state-update.sh ~/.claude/scripts/*.sh ~/bin/claude-sessions.sh
+chmod +x ~/.claude/hooks/*.sh ~/.claude/scripts/*.sh ~/bin/claude-sessions.sh
 
 # 3. settings.json の hooks セクションを ~/.claude/settings.json にマージ
 ```
@@ -91,7 +93,7 @@ prefix + r  (Ctrl-b → r)
 | `UserPromptSubmit` | → thinking (🧠) |
 | `SessionStart` | → starting (🚀) |
 | `PermissionRequest` | → permission (🛑) + 音声 + macOS通知 |
-| `Stop` | → idle (📝) + 音声 + macOS通知 |
+| `Stop` | → state-stop.sh で判定: completed (✅) or waiting (💬) + 音声 + macOS通知 |
 
 ## ボーダー色の更新タイミング
 
