@@ -52,6 +52,11 @@ chmod +x ~/.claude/hooks/*.sh ~/.claude/scripts/*.sh ~/bin/*.sh
 2. 上記デプロイコマンドでファイルをコピー
 3. `settings.json` の hooks セクションを `~/.claude/settings.json` にマージ
 
+## コピーモード
+- viキーバインド（`mode-keys vi`）
+- マウスドラッグ選択で自動的にmacOSクリップボードへコピー（`pbcopy`）
+- `y` キーでもコピー可能
+
 ## 開発ルール
 - シェルスクリプトは `#!/bin/bash` を使用
 - 状態ファイルはJSON形式で統一
