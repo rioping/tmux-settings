@@ -78,7 +78,7 @@ git clone git@github.com:rioping/dotfiles.git ~/dev/dotfiles
 
 ## statusline 表示
 
-`ctx:45% | 5h:23%(2h30m) | 7d:12%` の形式でコンテキスト使用率と API 使用率を表示。
+`ctx:45% | 5h:23%(2h30m) | 7d:12%` の形式でコンテキスト使用率と API 使用率を表示。API 取得失敗時は `5h:-- | 7d:--` にフォールバック。
 
 ## 追跡しないもの
 

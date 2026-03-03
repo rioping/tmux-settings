@@ -87,6 +87,10 @@ if [ -f "$CACHE_FILE" ]; then
   fi
 fi
 
+# --- Fallback when API is unavailable ---
+[ -z "$session_display" ] && session_display="5h:--"
+[ -z "$weekly_display" ] && weekly_display="7d:--"
+
 # --- Assemble with pipe separator ---
 parts=()
 [ -n "$ctx_display" ] && parts+=("$ctx_display")
