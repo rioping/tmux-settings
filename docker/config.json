@@ -1,0 +1,5 @@
+{
+  "credHelpers": {
+    "asia-northeast1-docker.pkg.dev": "gcloud"
+  }
+}

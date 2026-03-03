@@ -1,66 +1,94 @@
-# Claude Code セッション状態管理 (tmux設定)
+# dotfiles
 
-## プロジェクト概要
-tmux + Claude Code hooks を組み合わせて、複数の Claude Code セッションの状態（思考中・入力待ち・許可待ち等）をリアルタイムに可視化するための設定一式。
+Mac のカスタム設定を一元管理するリポジトリ。新しい Mac への移行時に `install.sh` で全設定を再現できる。
 
 ## ディレクトリ構成
+
 ```
-tmux-settings/
-├── .tmux.conf                      # tmux本体設定 → ~/.tmux.conf
-├── settings.json                   # Claude Code設定 → ~/.claude/settings.json
-├── hooks/
-│   ├── state-update.sh             # 状態更新フック → ~/.claude/hooks/state-update.sh
-│   └── state-stop.sh               # Stop時の状態判定 → ~/.claude/hooks/state-stop.sh
-├── scripts/
-│   ├── tmux-pane-status.sh         # ペインボーダー状態表示
-│   ├── tmux-window-status.sh       # ステータスバー右側表示 + ボーダー色フォールバック
-│   └── tmux-pane-colors.sh         # ボーダー色更新（予備）
-└── bin/
-    └── claude-sessions.sh          # マルチセッション起動スクリプト → ~/bin/
+dotfiles/
+├── install.sh                        # インストールスクリプト（--dry-run 対応）
+├── Brewfile                          # Homebrew パッケージ一覧
+├── shell/
+│   ├── .zshrc                        # → ~/.zshrc
+│   └── .zprofile                     # → ~/.zprofile
+├── git/
+│   ├── .gitconfig                    # → ~/.gitconfig
+│   └── ignore                        # → ~/.config/git/ignore
+├── claude/
+│   ├── settings.json                 # → ~/.claude/settings.json
+│   ├── config.json                   # → ~/.claude/config.json
+│   ├── hooks/
+│   │   ├── state-update.sh           # → ~/.claude/hooks/
+│   │   ├── state-stop.sh
+│   │   ├── session-start.sh
+│   │   └── pre-bash.sh
+│   └── scripts/
+│       ├── statusline-command.sh     # → ~/.claude/scripts/
+│       ├── tmux-pane-status.sh
+│       ├── tmux-window-status.sh
+│       └── tmux-pane-colors.sh
+├── tmux/
+│   └── .tmux.conf                    # → ~/.tmux.conf
+├── gh/
+│   ├── config.yml                    # → ~/.config/gh/
+│   └── hosts.yml
+├── docker/
+│   └── config.json                   # → ~/.docker/config.json
+├── bin/
+│   └── claude-sessions.sh            # → ~/bin/
+├── macos/
+│   ├── setup.md                      # Mac セットアップ手順
+│   └── keyboard-and-trackpad.md      # トラックパッド・キーボード設定
+└── launchagents/
+    └── com.productivity.macbook-export.plist  # → ~/Library/LaunchAgents/
 ```
 
-## 使用技術
-- **tmux**: ターミナルマルチプレクサ
-- **Bash**: フック・スクリプト全般
-- **Claude Code Hooks**: セッション状態のトリガー（UserPromptSubmit, SessionStart, PermissionRequest, Stop）
-- **macOS固有**: `afplay`（通知音）、`osascript`（デスクトップ通知）
+## 使い方
 
-## 状態管理の仕組み
-- 状態ファイル: `/tmp/claude-sessions/{pane_id}.state`（JSON形式）
-- Hook発火 → `state-update.sh` が状態書き込み + ペインボーダー色を即時変更
-- `tmux-window-status.sh` が1秒ごとにステータスバー更新 + ボーダー色フォールバック
-
-## 重要なコマンド
 ```bash
-# マルチセッション起動
-~/bin/claude-sessions.sh          # 4ペイン（デフォルト）
-~/bin/claude-sessions.sh 6 tiled  # 6ペイン tiledレイアウト
+# クローン
+git clone git@github.com:rioping/dotfiles.git ~/dev/dotfiles
 
-# tmux設定リロード（tmux内で）
-prefix + r  (Ctrl-b → r)
+# プレビュー（ファイルは変更しない）
+./install.sh --dry-run
 
-# ファイルのデプロイ（手動コピー）
-cp .tmux.conf ~/.tmux.conf
-cp hooks/*.sh ~/.claude/hooks/
-cp scripts/*.sh ~/.claude/scripts/
-cp bin/*.sh ~/bin/
-chmod +x ~/.claude/hooks/*.sh ~/.claude/scripts/*.sh ~/bin/*.sh
+# インストール（既存ファイルは .bak にバックアップ）
+./install.sh
 ```
 
-## 環境構築手順
-1. `brew install tmux`
-2. 上記デプロイコマンドでファイルをコピー
-3. `settings.json` の hooks セクションを `~/.claude/settings.json` にマージ
+## Claude Code Hooks
 
-## コピーモード
-- viキーバインド（`mode-keys vi`）
-- マウスドラッグ選択で自動的にmacOSクリップボードへコピー（`pbcopy`）
-- `y` キーでもコピー可能
+| イベント | 動作 |
+|---------|------|
+| `UserPromptSubmit` | → thinking（🧠） |
+| `SessionStart` | → starting（🚀）+ CLAUDE.md / git チェック |
+| `PreToolUse (Bash)` | → git push 前に CLAUDE.md 鮮度チェック |
+| `PermissionRequest` | → permission（🛑）+ 音声 + macOS 通知 |
+| `Stop` | → completed（✅）or waiting（💬）+ 音声 + macOS 通知 |
 
-## 開発ルール
-- シェルスクリプトは `#!/bin/bash` を使用
-- 状態ファイルはJSON形式で統一
-- カラーコードは Catppuccin Mocha パレットに準拠
+## tmux セッション状態の可視化
+
+| 状態 | 絵文字 | ボーダー色 |
+|------|--------|-----------|
+| 思考中 | 🧠 | `#a6e3a1` グリーン |
+| 完了 | ✅ | `#a6adc8` グレー |
+| 入力待ち | 💬 | `#fab387` オレンジ |
+| 許可待ち | 🛑 | `#f38ba8` レッド |
+| 起動中 | 🚀 | `#89b4fa` ブルー |
+
+## statusline 表示
+
+`ctx:45% | 5h:23%(2h30m) | 7d:12%` の形式でコンテキスト使用率と API 使用率を表示。
+
+## 追跡しないもの
+
+- `~/.claude/settings.local.json` — 自動生成の許可リスト
+- `~/.zshrc` の OAuth トークン — `claude login` で取得
+- `~/.ssh/*` — 秘密鍵
+- `~/.config/gcloud/*`, `~/.config/firebase/*` — 認証情報
 
 ## Git ルール
+
 - コミットメッセージは日本語で書くこと
+- カラーコードは Catppuccin Mocha パレットに準拠
+- シェルスクリプトは `#!/bin/bash` を使用
