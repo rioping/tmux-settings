@@ -23,7 +23,7 @@ dotfiles/
 │   │   ├── session-start.sh
 │   │   └── pre-bash.sh
 │   └── scripts/
-│       ├── statusline-command.sh     # → ~/.claude/scripts/
+│       ├── statusline.sh              # → ~/.claude/statusline.sh
 │       ├── tmux-pane-status.sh
 │       ├── tmux-window-status.sh
 │       └── tmux-pane-colors.sh
@@ -84,7 +84,7 @@ git clone git@github.com:rioping/dotfiles.git ~/dev/dotfiles
 
 ## statusline 表示
 
-`ctx:45% | 5h:23%(2h30m) | 7d:12%` の形式でコンテキスト使用率と API 使用率を表示。API 取得失敗時は `5h:-- | 7d:--` にフォールバック。成功時は 120 秒、失敗時は 300 秒のネガティブキャッシュで API レート制限を回避。
+[cc-statusline](https://github.com/chongdashu/cc-statusline) ベースのカスタム版。コンテキスト使用率、コスト、バーンレート、Git ブランチ、モデル名を表示。セッション使用率は Anthropic API (`/api/oauth/usage`) から直接取得（成功時 180 秒、失敗時 600 秒のキャッシュ）。
 
 ## 追跡しないもの
 

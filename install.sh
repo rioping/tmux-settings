@@ -22,6 +22,7 @@ FILES=(
   "git/ignore:$HOME/.config/git/ignore"
   "claude/settings.json:$HOME/.claude/settings.json"
   "claude/config.json:$HOME/.claude/config.json"
+  "claude/scripts/statusline.sh:$HOME/.claude/statusline.sh"
   "tmux/.tmux.conf:$HOME/.tmux.conf"
   "gh/config.yml:$HOME/.config/gh/config.yml"
   "gh/hosts.yml:$HOME/.config/gh/hosts.yml"
