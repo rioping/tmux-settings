@@ -20,11 +20,11 @@ C() { if [ "$use_color" -eq 1 ]; then printf '\033[%sm' "$1"; fi; }
 RST() { if [ "$use_color" -eq 1 ]; then printf '\033[0m'; fi; }
 
 # ---- modern sleek colors ----
-dir_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;117m'; fi; }    # sky blue
-model_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;147m'; fi; }  # light purple  
-version_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;180m'; fi; } # soft yellow
-cc_version_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;249m'; fi; } # light gray
-style_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;245m'; fi; } # gray
+dir_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;111m'; fi; }    # Catppuccin Blue
+model_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;141m'; fi; }  # Catppuccin Lavender
+version_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;223m'; fi; } # Catppuccin Yellow
+cc_version_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;251m'; fi; } # Catppuccin Subtext0
+style_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;243m'; fi; } # Catppuccin Overlay0
 rst() { if [ "$use_color" -eq 1 ]; then printf '\033[0m'; fi; }
 
 # ---- time helpers ----
@@ -145,11 +145,11 @@ if [ "$HAS_JQ" -eq 1 ]; then
     (( context_remaining_pct > 100 )) && context_remaining_pct=100
 
     if [ "$context_remaining_pct" -le 20 ]; then
-      context_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;203m'; fi; }  # coral red
+      context_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;211m'; fi; }  # Catppuccin Red
     elif [ "$context_remaining_pct" -le 40 ]; then
-      context_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;215m'; fi; }  # peach
+      context_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;216m'; fi; }  # Catppuccin Peach
     else
-      context_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;158m'; fi; }  # mint green
+      context_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;150m'; fi; }  # Catppuccin Green
     fi
 
     context_pct="${context_remaining_pct}%"
@@ -157,14 +157,14 @@ if [ "$HAS_JQ" -eq 1 ]; then
 fi
 
 # ---- usage colors ----
-usage_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;189m'; fi; }  # lavender
-cost_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;222m'; fi; }   # light gold
-burn_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;220m'; fi; }   # bright gold
-session_color() { 
+usage_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;141m'; fi; }  # Catppuccin Lavender
+cost_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;223m'; fi; }   # Catppuccin Yellow
+burn_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;216m'; fi; }   # Catppuccin Peach
+session_color() {
   rem_pct=$(( 100 - session_pct ))
-  if   (( rem_pct <= 10 )); then SCLR='38;5;210'  # light pink
-  elif (( rem_pct <= 25 )); then SCLR='38;5;228'  # light yellow  
-  else                          SCLR='38;5;194'; fi  # light green
+  if   (( rem_pct <= 10 )); then SCLR='38;5;211'  # Catppuccin Red
+  elif (( rem_pct <= 25 )); then SCLR='38;5;223'  # Catppuccin Yellow
+  else                          SCLR='38;5;150'; fi  # Catppuccin Green
   if [ "$use_color" -eq 1 ]; then printf '\033[%sm' "$SCLR"; fi
 }
 
@@ -351,7 +351,8 @@ if [ -f "$USAGE_CACHE" ] && [ "$HAS_JQ" -eq 1 ]; then
   fi
 fi
 
-# Fallback when API data is unavailable
+# Fallback when data is unavailable
+[ -z "$context_pct" ] && { context_pct="--"; context_remaining_pct=100; }
 [ -z "$session_txt" ] && { session_txt="--"; session_bar=$(progress_bar 0 10); }
 [ -z "$weekly_txt" ] && weekly_txt="7d:--"
 
@@ -388,9 +389,6 @@ if [ -n "$session_txt" ]; then
   else
     line2="$session_part"
   fi
-fi
-if [ -z "$line2" ] && [ -z "$context_pct" ]; then
-  line2="🧠 $(context_color)Context Remaining: TBD$(rst)"
 fi
 
 # Line 3: Cost and usage analytics

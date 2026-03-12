@@ -84,7 +84,7 @@ git clone git@github.com:rioping/dotfiles.git ~/dev/dotfiles
 
 ## statusline 表示
 
-[cc-statusline](https://github.com/chongdashu/cc-statusline) ベースのカスタム版。コンテキスト使用率、コスト、バーンレート、Git ブランチ、モデル名を表示。セッション使用率は Anthropic API (`/api/oauth/usage`) から直接取得（成功時 180 秒、失敗時 600 秒のキャッシュ）。
+[cc-statusline](https://github.com/chongdashu/cc-statusline) ベースのカスタム版。コンテキスト残量、5h/7d セッション使用率、コスト、バーンレート、Git ブランチ、モデル名を表示。色は Catppuccin Mocha パレット準拠。セッション使用率は Anthropic API (`/api/oauth/usage`) から直接取得（成功時 120 秒、失敗時 300 秒のキャッシュ）。OAuth トークン期限切れ時はリフレッシュトークンで自動再取得し、キーチェーンの HEX エンコードにも対応。データ未取得時は `--` をフォールバック表示。
 
 ## テンプレート変数
 
