@@ -137,33 +137,22 @@ context_remaining_pct=""
 context_color() { if [ "$use_color" -eq 1 ]; then printf '\033[1;37m'; fi; }  # default white
 
 if [ "$HAS_JQ" -eq 1 ]; then
-  # Get context window size and current usage from native Claude Code input
-  CONTEXT_SIZE=$(echo "$input" | jq -r '.context_window.context_window_size // 200000' 2>/dev/null)
-  USAGE=$(echo "$input" | jq '.context_window.current_usage' 2>/dev/null)
+  used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty' 2>/dev/null)
+  if [ -n "$used_pct" ]; then
+    context_used_pct=$(printf "%.0f" "$used_pct" 2>/dev/null || echo "$used_pct")
+    context_remaining_pct=$(( 100 - context_used_pct ))
+    (( context_remaining_pct < 0 )) && context_remaining_pct=0
+    (( context_remaining_pct > 100 )) && context_remaining_pct=100
 
-  if [ "$USAGE" != "null" ] && [ -n "$USAGE" ]; then
-    # Calculate current context from current_usage fields
-    # Formula: input_tokens + cache_creation_input_tokens + cache_read_input_tokens
-    CURRENT_TOKENS=$(echo "$USAGE" | jq '(.input_tokens // 0) + (.cache_creation_input_tokens // 0) + (.cache_read_input_tokens // 0)' 2>/dev/null)
-
-    if [ -n "$CURRENT_TOKENS" ] && [ "$CURRENT_TOKENS" -gt 0 ] 2>/dev/null; then
-      context_used_pct=$(( CURRENT_TOKENS * 100 / CONTEXT_SIZE ))
-      context_remaining_pct=$(( 100 - context_used_pct ))
-      # Clamp to valid range
-      (( context_remaining_pct < 0 )) && context_remaining_pct=0
-      (( context_remaining_pct > 100 )) && context_remaining_pct=100
-
-      # Set color based on remaining percentage
-      if [ "$context_remaining_pct" -le 20 ]; then
-        context_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;203m'; fi; }  # coral red
-      elif [ "$context_remaining_pct" -le 40 ]; then
-        context_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;215m'; fi; }  # peach
-      else
-        context_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;158m'; fi; }  # mint green
-      fi
-
-      context_pct="${context_remaining_pct}%"
+    if [ "$context_remaining_pct" -le 20 ]; then
+      context_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;203m'; fi; }  # coral red
+    elif [ "$context_remaining_pct" -le 40 ]; then
+      context_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;215m'; fi; }  # peach
+    else
+      context_color() { if [ "$use_color" -eq 1 ]; then printf '\033[38;5;158m'; fi; }  # mint green
     fi
+
+    context_pct="${context_remaining_pct}%"
   fi
 fi
 
@@ -236,8 +225,8 @@ fi
 # Session usage from Anthropic API (cached, non-blocking)
 USAGE_CACHE="/tmp/claude-usage-cache.json"
 USAGE_LOCK="/tmp/claude-usage-cache.lock"
-USAGE_CACHE_MAX_AGE=180
-USAGE_LOCK_MAX_AGE=600
+USAGE_CACHE_MAX_AGE=120
+USAGE_LOCK_MAX_AGE=300
 
 usage_should_fetch=false
 usage_now=$(date +%s)
@@ -256,33 +245,86 @@ if [ "$usage_should_fetch" = true ]; then
   # Create lock BEFORE fetch to prevent concurrent API calls
   touch "$USAGE_LOCK"
   (
-    token=$(security find-generic-password -s "Claude Code-credentials" -a "$(whoami)" -w 2>/dev/null | jq -r '.claudeAiOauth.accessToken // empty' 2>/dev/null)
-    if [ -n "$token" ]; then
-      resp=$(curl -sS --max-time 10 -D /tmp/claude-usage-headers.txt \
-        -H "Authorization: Bearer $token" \
+    KEYCHAIN_SERVICE="Claude Code-credentials"
+    OAUTH_CLIENT_ID="9d1c250a-e61b-44d9-88ed-5944d1962f5e"
+    OAUTH_TOKEN_URL="https://console.anthropic.com/v1/oauth/token"
+
+    # macOS keychain may HEX-encode JSON data; detect and decode
+    read_keychain() {
+      local raw
+      raw=$(security find-generic-password -s "$1" -a "$(whoami)" -w 2>/dev/null) || return 1
+      if echo "$raw" | jq -e '.' >/dev/null 2>&1; then
+        echo "$raw"
+      else
+        echo "$raw" | xxd -r -p 2>/dev/null
+      fi
+    }
+
+    write_keychain() {
+      security delete-generic-password -s "$1" -a "$(whoami)" >/dev/null 2>&1
+      security add-generic-password -s "$1" -a "$(whoami)" -w "$2" >/dev/null 2>&1
+    }
+
+    creds_json=$(read_keychain "$KEYCHAIN_SERVICE")
+    token=$(echo "$creds_json" | jq -r '.claudeAiOauth.accessToken // empty' 2>/dev/null)
+
+    fetch_usage() {
+      curl -s --max-time 5 \
+        -H "Authorization: Bearer $1" \
         -H "anthropic-beta: oauth-2025-04-20" \
-        "https://api.anthropic.com/api/oauth/usage" 2>/dev/null)
+        "https://api.anthropic.com/api/oauth/usage" 2>/dev/null
+    }
+
+    if [ -n "$token" ]; then
+      resp=$(fetch_usage "$token")
+
+      # If auth error, try refreshing the token
+      if echo "$resp" | jq -e '.error.type == "authentication_error"' >/dev/null 2>&1; then
+        refresh_token=$(echo "$creds_json" | jq -r '.claudeAiOauth.refreshToken // empty' 2>/dev/null)
+        if [ -n "$refresh_token" ]; then
+          refresh_resp=$(curl -s --max-time 5 \
+            -X POST "$OAUTH_TOKEN_URL" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "grant_type=refresh_token&refresh_token=${refresh_token}&client_id=${OAUTH_CLIENT_ID}" 2>/dev/null)
+
+          new_access=$(echo "$refresh_resp" | jq -r '.access_token // empty' 2>/dev/null)
+          new_refresh=$(echo "$refresh_resp" | jq -r '.refresh_token // empty' 2>/dev/null)
+          expires_in=$(echo "$refresh_resp" | jq -r '.expires_in // empty' 2>/dev/null)
+
+          if [ -n "$new_access" ] && [ -n "$new_refresh" ]; then
+            # Update keychain with new tokens
+            expires_at=$(( $(date +%s) * 1000 + ${expires_in:-28800} * 1000 ))
+            updated_creds=$(echo "$creds_json" | jq \
+              --arg at "$new_access" \
+              --arg rt "$new_refresh" \
+              --argjson ea "$expires_at" \
+              '.claudeAiOauth.accessToken = $at | .claudeAiOauth.refreshToken = $rt | .claudeAiOauth.expiresAt = $ea')
+            write_keychain "$KEYCHAIN_SERVICE" "$updated_creds"
+
+            # Retry usage API with new token
+            resp=$(fetch_usage "$new_access")
+          fi
+        fi
+      fi
+
       if echo "$resp" | jq -e '.five_hour' >/dev/null 2>&1; then
         echo "$resp" > "$USAGE_CACHE"
         rm -f "$USAGE_LOCK"
       else
-        # On 429, respect Retry-After header if present
-        retry_after=$(grep -i '^retry-after:' /tmp/claude-usage-headers.txt 2>/dev/null | sed 's/[^0-9]//g')
-        if [ -n "$retry_after" ] && [ "$retry_after" -gt 0 ] 2>/dev/null; then
-          # Set lock mtime to now, USAGE_LOCK_MAX_AGE will be compared against it
-          touch "$USAGE_LOCK"
-        fi
-        # Keep stale cache if it exists (better than showing nothing)
+        touch "$USAGE_LOCK"
       fi
-      rm -f /tmp/claude-usage-headers.txt
+    else
+      touch "$USAGE_LOCK"
     fi
   ) &
 fi
 
+weekly_txt=""
 if [ -f "$USAGE_CACHE" ] && [ "$HAS_JQ" -eq 1 ]; then
   usage_data=$(cat "$USAGE_CACHE")
   five_util=$(echo "$usage_data" | jq -r '.five_hour.utilization // empty')
   five_reset=$(echo "$usage_data" | jq -r '.five_hour.resets_at // empty')
+  seven_util=$(echo "$usage_data" | jq -r '.seven_day.utilization // empty')
 
   if [ -n "$five_util" ]; then
     session_pct=$(printf "%.0f" "$five_util" 2>/dev/null || echo "$five_util")
@@ -302,7 +344,16 @@ if [ -f "$USAGE_CACHE" ] && [ "$HAS_JQ" -eq 1 ]; then
     fi
     [ -z "$session_txt" ] && session_txt="${session_pct}% used"
   fi
+
+  if [ -n "$seven_util" ]; then
+    weekly_pct=$(printf "%.0f" "$seven_util" 2>/dev/null || echo "$seven_util")
+    weekly_txt="7d:${weekly_pct}%"
+  fi
 fi
+
+# Fallback when API data is unavailable
+[ -z "$session_txt" ] && { session_txt="--"; session_bar=$(progress_bar 0 10); }
+[ -z "$weekly_txt" ] && weekly_txt="7d:--"
 
 # ---- render statusline ----
 # Line 1: Core info (directory, git, model, claude code version, output style)
@@ -328,10 +379,14 @@ if [ -n "$context_pct" ]; then
   line2="🧠 $(context_color)Context Remaining: ${context_pct} [${context_bar}]$(rst)"
 fi
 if [ -n "$session_txt" ]; then
+  session_part="⌛ $(session_color)${session_txt}$(rst) $(session_color)[${session_bar}]$(rst)"
+  if [ -n "$weekly_txt" ]; then
+    session_part="$session_part  📅 $(session_color)${weekly_txt}$(rst)"
+  fi
   if [ -n "$line2" ]; then
-    line2="$line2  ⌛ $(session_color)${session_txt}$(rst) $(session_color)[${session_bar}]$(rst)"
+    line2="$line2  $session_part"
   else
-    line2="⌛ $(session_color)${session_txt}$(rst) $(session_color)[${session_bar}]$(rst)"
+    line2="$session_part"
   fi
 fi
 if [ -z "$line2" ] && [ -z "$context_pct" ]; then

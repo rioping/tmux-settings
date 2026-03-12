@@ -2,7 +2,8 @@
   "model": "opus",
   "statusLine": {
     "type": "command",
-    "command": "bash ~/.claude/scripts/statusline-command.sh"
+    "command": "~/.claude/statusline.sh",
+    "padding": 0
   },
   "env": {
     "ANTHROPIC_MODEL": "claude-opus-4-6",
